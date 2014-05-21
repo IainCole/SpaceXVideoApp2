@@ -79,13 +79,17 @@ function isNullOrEmpty(string) {
 	return string === undefined || string === null || string === '' || string === '0' || string === 0;
 }
 
-function formatGlobalMmb(value) {
+function formatGlobalMmb(value, isolateFrame, currentScrubPosition) {
 	var ret = '';
 	var first = true;
 
 	for (var i = 0; i < value.length; i++) {
 		var mmb = formatMMB(value[i]);
 
+		if (isolateFrame && !mmb && i < currentScrubPosition) {
+			mmb = '0:0:-1';
+		}
+		
 		if (mmb != null && mmb != '') {
 			if (!first) {
 				ret += '=';
@@ -332,7 +336,19 @@ spacex.directive('scrubber', [function () {
 		link: function ($scope, element, attributes) {
 			var scrubHandle = element.find('#scrubHandle');
 
-			$scope.$watch('data.currentFrameImages.length', function() {
+			var enabled = true;
+
+			$scope.$watch('data.isolateFrame', function (newVal) {
+				enabled = !newVal;
+				if (enabled) {
+					element.removeClass('disabled');
+				} else {
+					element.addClass('disabled');
+				}
+
+			});
+
+			$scope.$watch('data.currentFrameImages.length', function () {
 				scrubHandle.width(element.width() / ($scope.data.currentFrameImages.length + 1));
 			});
 
@@ -372,10 +388,16 @@ spacex.directive('scrubber', [function () {
 			}
 
 			element.bind('click', function (e) {
+				if (!enabled) {
+					return;
+				}
 				setPosition(e.pageX);
 			});
 
 			scrubHandle.bind('mousedown.scrubber', function (e) {
+				if (!enabled) {
+					return;
+				}
 				e.preventDefault();
 				e.stopPropagation();
 
@@ -777,6 +799,7 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 
 	$scope.$watch('data.selectedFrame', function (newVal, oldVal) {
 		if (newVal !== oldVal) {
+			$scope.data.isolateFrame = false;
 			$scope.data.currentScrubPosition = 0;
 			$scope.data.mmb = parseGlobalMMB(newVal);
 			$scope.updateImage();
@@ -789,7 +812,11 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 
 	$scope.$watch('data.mmb', function (newVal, oldVal) {
 		if (newVal !== oldVal) {
-			$scope.updateImage();
+			if ($scope.data.isolateFrame) {
+				updateIsolateFrame();
+			} else {
+				$scope.updateImage();
+			}
 		}
 	}, true);
 
@@ -859,6 +886,55 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 		$scope.imagePath = 'data:image/jpeg;base64,' + $scope.data.currentFrameImages[$scope.data.currentScrubPosition];
 	};
 
+	$scope.$watch('data.isolateFrame', function (newVal, oldVal) {
+		if (newVal == oldVal) {
+			return;
+		}
+
+		if (newVal) {
+			currentIsolateKey = null;
+			updateIsolateFrame();
+		} else {
+			currentImageKey = null;
+			$scope.updateImage();
+		}
+	});
+
+	var currentIsolateKey;
+	
+	function updateIsolateFrame() {
+		var mmbCopy = angular.copy($scope.data.mmb);
+
+		for (var i = 0; i < mmbCopy.length; i++) {
+			if (i != $scope.data.currentScrubPosition) {
+				mmbCopy[i] = undefined;
+			}
+		}
+
+		var mmbString = formatGlobalMmb(mmbCopy, true, $scope.data.currentScrubPosition);
+
+		var isolateKey = $scope.data.selectedFrame.frame + '_' + mmbString;
+
+		if (currentIsolateKey != isolateKey) {
+			currentIsolateKey = isolateKey;
+
+			$scope.showSpinner = true;
+			
+			imgService.getFramesInfo($scope.data.selectedFrame.frame, $scope.version, mmbString).then(function(data) {
+				$scope.data.currentFrameImages = data;
+				$scope.selectScrubbedFrame();
+				$scope.showSpinner = false;
+			});
+
+			imgService.getFramesLog($scope.data.selectedFrame.frame, $scope.version, mmbString).then(function(result) {
+				$scope.data.frameLog = result;
+				parseInfo(result);
+			});
+		}
+	}
+
+	var currentImageKey;
+
 	$scope.updateImage = function () {
 		if (!$scope.data.selectedFrame) {
 			$scope.imagePath = null;
@@ -867,9 +943,11 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 
 		var mmbString = formatGlobalMmb($scope.data.mmb);
 
-		//if (currentImageUrl !== mmbString) {
+		var imageKey = $scope.data.selectedFrame.frame + mmbString;
+
+		if (currentImageKey !== imageKey) {
 			$scope.showSpinner = true;
-			//currentImageUrl = mmbString;
+			currentImageKey = imageKey;
 
 			imgService.getFramesInfo($scope.data.selectedFrame.frame, $scope.version, mmbString).then(function (data) {
 				$scope.data.currentFrameImages = data;
@@ -881,7 +959,7 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 				$scope.data.frameLog = result;
 				parseInfo(result);
 			});
-		//}
+		}
 	};
 
 	$scope.addInvertBits = function () {
