@@ -345,17 +345,17 @@
 				
 				<label for="frameMmb">MMB for Entire Segment</label>
 				<textarea ng-model="data.mmb" id="globalMmb" parse-global-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
-				<!--<div class="cf">
+				<div class="cf">
 					<div id="imageInfo">
 						<p ng-if="data.selectedMacroBlock">MB {{data.selectedMacroBlock.x}}:{{data.selectedMacroBlock.y}} - {{getMBLogInfo(data.selectedMacroBlock.x, data.selectedMacroBlock.y)}}{{getMBErrorInfo(data.selectedMacroBlock.x, data.selectedMacroBlock.y)}}</p>
 					</div>
-					<div id="errorOverview">
-						<label for="showLegend">Show Errors</label><input id="showLegend" type="checkbox" ng-model="showLegend" /> Num Errors: {{data.errorCount}}
+					<div id="errorOverview" ng-if="!playing">
+						<label for="showLegend">Show Errors</label><input id="showLegend" type="checkbox" ng-model="data.showLegend" /> Num Errors: {{getMBErrorCount()}}
 					</div>
-				</div>-->
+				</div>
 				<div id="imageMask" macroblock-selector="data">
 					<img src="{{imagePath}}" width="703" height="480" />
-					<div id="imageLegend" ng-if="showLegend" image-legend></div>
+					<div id="imageLegend" ng-if="data.showLegend" image-legend></div>
 				</div>
 				<div id="operations">
 					<div ng-if="!playing">
@@ -399,7 +399,7 @@
 				</div>
 				<div id="frameNumber">{{data.currentScrubPosition + data.selectedFrame.startingFrame}}</div><div id="scrubber" scrubber><div id="scrubHandle"></div></div><a href="javascript://" id="playPause" ng-class="{true: 'playing'}[playing]" ng-click="togglePlaying()"><span ng-if="playing">||</span><span ng-if="!playing">&gt;</span></a>
 			<!--	<p id="imgLink" ng-if="imagePath"><a target="_blank" href="{{imagePath}}">Save Image</a> (right click save as)</p>-->
-				<!--<textarea ng-model="data.frameLog" readonly="readonly" id="log"></textarea>-->
+				<textarea ng-model="data.frameLog" readonly="readonly" id="log"></textarea>
 			</div>
 		</div>
 	</div>

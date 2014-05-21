@@ -65,9 +65,13 @@ function opIsValid(op) {
 	return false;
 }
 
-function pad(num) {
+function pad(num, p) {
+	if (p === undefined) {
+		p = 2;
+	}
+
 	var s = num + "";
-	while (s.length < 2) s = "0" + s;
+	while (s.length < p) s = "0" + s;
 	return s;
 }
 
@@ -97,43 +101,45 @@ function formatGlobalMmb(value) {
 function formatMMB(val) {
 	var mmb = [];
 
-	angular.forEach(val.globalOperations, function (op, i) {
-		if (op.__type == 'xor_bitpos' && opIsValid(op)) {
-			var pos = op.pos;
-			mmb.push('X:' + pos + ':' + maskToHex(op.mask));
-		};
-	});
+	if (val) {
+		angular.forEach(val.globalOperations, function (op, i) {
+			if (op.__type == 'xor_bitpos' && opIsValid(op)) {
+				var pos = op.pos;
+				mmb.push('X:' + pos + ':' + maskToHex(op.mask));
+			};
+		});
 
-	angular.forEach(val.macroblockOperations, function (row, l) {
-		if (row) {
-			angular.forEach(row, function (op, c) {
-				if (op) {
-					if (op.__type == 'macro_block_op' && opIsValid(op)) {
-						var command = c + ':' + l + ':' + op.pos;
+		angular.forEach(val.macroblockOperations, function (row, l) {
+			if (row) {
+				angular.forEach(row, function (op, c) {
+					if (op) {
+						if (op.__type == 'macro_block_op' && opIsValid(op)) {
+							var command = c + ':' + l + ':' + op.pos;
 
-						if (isNullOrEmpty(op.l1) && isNullOrEmpty(op.l2) && isNullOrEmpty(op.l3) && isNullOrEmpty(op.l4) && isNullOrEmpty(op.c1) && isNullOrEmpty(op.c2)) {
-							if (op.dir) {
-								command += '::' + op.dir;
-							}
-						} else {
-							command += ':' + (isNullOrEmpty(op.l1) ? '0' : op.l1);
-							command += ':' + (isNullOrEmpty(op.l2) ? '0' : op.l2);
-							command += ':' + (isNullOrEmpty(op.l3) ? '0' : op.l3);
-							command += ':' + (isNullOrEmpty(op.l4) ? '0' : op.l4);
-							command += ':' + (isNullOrEmpty(op.c1) ? '0' : op.c1);
-							command += ':' + (isNullOrEmpty(op.c2) ? '0' : op.c2);
+							if (isNullOrEmpty(op.l1) && isNullOrEmpty(op.l2) && isNullOrEmpty(op.l3) && isNullOrEmpty(op.l4) && isNullOrEmpty(op.c1) && isNullOrEmpty(op.c2)) {
+								if (op.dir) {
+									command += '::' + op.dir;
+								}
+							} else {
+								command += ':' + (isNullOrEmpty(op.l1) ? '0' : op.l1);
+								command += ':' + (isNullOrEmpty(op.l2) ? '0' : op.l2);
+								command += ':' + (isNullOrEmpty(op.l3) ? '0' : op.l3);
+								command += ':' + (isNullOrEmpty(op.l4) ? '0' : op.l4);
+								command += ':' + (isNullOrEmpty(op.c1) ? '0' : op.c1);
+								command += ':' + (isNullOrEmpty(op.c2) ? '0' : op.c2);
 							
-							if (op.dir) {
-								command += ':' + op.dir;
+								if (op.dir) {
+									command += ':' + op.dir;
+								}
 							}
-						}
 
-						mmb.push(command);
+							mmb.push(command);
+						};
 					};
-				};
-			});
-		}
-	});
+				});
+			}
+		});
+	}
 
 	return mmb.join(",");
 }
@@ -212,10 +218,12 @@ function parseMMBPart(op) {
 			mask: { }
 		};
 
+		var len = bin.length;
+		
 		for (var i = 0; i < bin.length; i++) {
-			ret.mask['b' + (7 - i)] = bin[i] == '1';
-		}
-
+ 			ret.mask['b' + ((len- 1) - i)] = bin[i] == '1';
+  		}
+		
 		return ret;
 	}
 
@@ -299,16 +307,17 @@ spacex.directive('parseGlobalMmb', [function () {
 			ngModel.$parsers.push(function (value) {
 				var parts = value.replace(/\s/g, '').split('=');
 				var ret = [];
-
 				var i;
 
-				for (i = 0; i < parts.length; i++) {
-					parts[i] = parts[i].replace(/FRAME[0-9]+:/, '');
-					ret.push(parseMMB(parts[i]));
+				// We're going to fill the array with 20 empty mmbs first
+				for (i = 0; i < $scope.data.currentFrameImages.length; i++) {
+					ret[i] = parseMMB(null);
 				}
 
-				for (i = ret.length; i < $scope.data.currentFrameImages.length; i++) {
-					ret.push(parseMMB(null));
+				for (i = 0; i < parts.length; i++) {
+					var frame = parseInt(parts[i].replace(/FRAME([0-9]+):.+/, '$1'));
+					parts[i] = parts[i].replace(/FRAME[0-9]+:/, '');
+					ret[frame] = parseMMB(parts[i]);
 				}
 
 				return ret;
@@ -537,20 +546,33 @@ spacex.directive('macroblockOperation', ['$compile', function ($compile) {
 spacex.directive('imageLegend', ['$compile', function ($compile) {
 	return {
 		link: function ($scope, element, attributes) {
-			$scope.$watch('data.currentImageError', function (newVal) {
+
+			function updateErrorBlocks() {
 				element.find('.blockError').remove();
 
-				for (var y = 0; y < newVal.length; y++) {
-					if (newVal[y]) {
-						for (var x = 0; x < newVal[y].length; x++) {
-							if (newVal[y][x]) {
-								var errDiv = $compile('<div class="blockError"></div>')($scope);
-								errDiv.css({ left: x * 16, top: y * 16 });
-								element.append(errDiv);
+				var frame = $scope.data.currentScrubPosition;
+
+				if ($scope.data.currentImageError[frame]) {
+					for (var y = 0; y < $scope.data.currentImageError.length; y++) {
+						if ($scope.data.currentImageError[frame][y]) {
+							for (var x = 0; x < $scope.data.currentImageError[frame][y].length; x++) {
+								if ($scope.data.currentImageError[frame][y][x]) {
+									var errDiv = $compile('<div class="blockError"></div>')($scope);
+									errDiv.css({ left: x * 16, top: y * 16 });
+									element.append(errDiv);
+								}
 							}
 						}
 					}
 				}
+			}
+
+			$scope.$watch('data.currentImageError', function (newVal) {
+				updateErrorBlocks();
+			}, true);
+
+			$scope.$watch('data.currentScrubPosition', function (newVal) {
+				updateErrorBlocks();
 			}, true);
 		}
 	};
@@ -593,10 +615,10 @@ spacex.factory('imgService', ['$http', '$q', function ($http, $q) {
 				return result.data.version;
 			});
 		},
-		getFrameInfo: function (selectedFrameSet, selectedFrame, version, mmb) {
+		getFramesLog: function (selectedFrame, version, mmb) {
 			return $http({
 				method: 'GET',
-				url: basePath + '/info/' + selectedFrameSet + '/' + selectedFrame + '?v=' + version + '&mmb=' + mmb
+				url: basePath + '/splodge/info/' + selectedFrame + '?v=' + version + '&mmb=' + mmb
 			}).then(function (result) {
 				return result.data;
 			});
@@ -749,7 +771,8 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 		currentFrameImages: [],
 		currentImageInfo: [],
 		currentImageError: [],
-		errorCount: 0
+		errorCount: 0,
+		showLegend: false
 	};
 
 	$scope.$watch('data.selectedFrame', function (newVal, oldVal) {
@@ -854,10 +877,10 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 				$scope.showSpinner = false;
 			});
 
-//			imgService.getFrameInfo($scope.data.selectedFrameSet.id, $scope.data.selectedFrame.id, $scope.version, mmbString).then(function (result) {
-//				$scope.data.frameLog = result;
-//				parseInfo(result);
-//			});
+			imgService.getFramesLog($scope.data.selectedFrame.frame, $scope.version, mmbString).then(function (result) {
+				$scope.data.frameLog = result;
+				parseInfo(result);
+			});
 		//}
 	};
 
@@ -1030,55 +1053,76 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 	});
 
 	//MB pos/size: 0 00:00:550 119 dc: 162 169 161 169 - 132 124
+	//MB pos/size: 0 002:10:02:2361 66 dc: -29 0 -29 0 - 0 0, MB_type: 12296, MV: -3 0
 
-	var infoRe = /MB pos\/size: (-?[0-9]) ([0-9]+):([0-9]+):([0-9]+) ([0-9]+) dc: ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) - ([0-9]+) ([0-9]+)/;
+	var infoRe = /MB pos\/size: (-?[0-9]) ([0-9]+):([0-9]+):([0-9]+):([0-9]+) ([0-9]+) dc: (-?[0-9]+) (-?[0-9]+) (-?[0-9]+) (-?[0-9]+) - (-?[0-9]+) (-?[0-9]+).*/;
 	var dcClippedRe = /dc clipped at ([0-9]+)x([0-9]+)/;
 	var cbpcDamagedRe = /I cbpc damaged at ([0-9]+) ([0-9]+) [0-9]+/;
 	var acTexDamagedRe = /ac-tex damaged at ([0-9]+) ([0-9]+) [0-9]+/;
 	var dQuantRe = /dquant at ([0-9]+) ([0-9]+)/;
 	var stuffingRe = /stuffing at ([0-9]+) ([0-9]+)/;
-	
-	function addImageError(x, y, err) {
-		if (!$scope.data.currentImageError[y]) {
-			$scope.data.currentImageError[y] = [];
+
+	function addImageError(frame, x, y, err) {
+		if (!$scope.data.currentImageError[frame]) {
+			$scope.data.currentImageError[frame] = [];
 		}
 
-		if (!$scope.data.currentImageError[y][x]) {
-			$scope.data.currentImageError[y][x] = '';
+		if (!$scope.data.currentImageError[frame][y]) {
+			$scope.data.currentImageError[frame][y] = [];
 		}
 
-		$scope.data.currentImageError[y][x] += ', ' + err;
-		$scope.data.errorCount++;
+		if (!$scope.data.currentImageError[frame][y][x]) {
+			$scope.data.currentImageError[frame][y][x] = '';
+		}
+
+		$scope.data.currentImageError[frame][y][x] += ', ' + err;
+
+		if (!errorCount[frame]) {
+			errorCount[frame] = 0;
+		}
+
+		errorCount[frame]++;
 	}
+
+	var currentImageInfo = [];
+	var errorCount = [];
 	
 	function parseInfo(info) {
 		var lines = info.split('\n');
-		$scope.data.currentImageInfo = [];
+		currentImageInfo = [];
 		$scope.data.currentImageError = [];
-		$scope.data.errorCount = 0;
+		errorCount = [];
+
+		var currentFrame = 0;
 		
 		for (var i = 0; i < lines.length; i++) {
 			if (infoRe.test(lines[i])) {
 				var match = infoRe.exec(lines[i]);
 				var s = parseInt(match[1]);
-				var x = parseInt(match[2]);
-				var y = parseInt(match[3]);
-				var pos = parseInt(match[4]);
-				var len = parseInt(match[5]);
+				var frame = currentFrame = parseInt(match[2]);
+				var x = parseInt(match[3]);
+				var y = parseInt(match[4]);
+				var pos = parseInt(match[5]);
+				var len = parseInt(match[6]);
 
-				var dc1 = parseInt(match[6]);
-				var dc2 = parseInt(match[7]);
-				var dc3 = parseInt(match[8]);
-				var dc4 = parseInt(match[9]);
-				var dc5 = parseInt(match[10]);
-				var dc6 = parseInt(match[11]);
-				
-				if (!$scope.data.currentImageInfo[y]) {
-					$scope.data.currentImageInfo[y] = [];
+				var dc1 = parseInt(match[7]);
+				var dc2 = parseInt(match[8]);
+				var dc3 = parseInt(match[9]);
+				var dc4 = parseInt(match[10]);
+				var dc5 = parseInt(match[11]);
+				var dc6 = parseInt(match[12]);
+
+				if (!currentImageInfo[frame]) {
+					currentImageInfo[frame] = [];
 				}
 
-				$scope.data.currentImageInfo[y][x] = {
+				if (!currentImageInfo[frame][y]) {
+					currentImageInfo[frame][y] = [];
+				}
+
+				currentImageInfo[frame][y][x] = {
 					s: s,
+					frame: frame,
 					pos: pos,
 					len: len,
 					dc1: dc1,
@@ -1092,57 +1136,79 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 				var match = dcClippedRe.exec(lines[i]);
 				var x = parseInt(match[1]);
 				var y = parseInt(match[2]);
-				addImageError(x, y, match[0]);
+				addImageError(currentFrame, x, y, match[0]);
 			} else if (cbpcDamagedRe.test(lines[i])) {
 				var match = cbpcDamagedRe.exec(lines[i]);
 				var x = parseInt(match[1]);
 				var y = parseInt(match[2]);
-				addImageError(x, y, match[0]);
+				addImageError(currentFrame, x, y, match[0]);
 			} else if (acTexDamagedRe.test(lines[i])) {
 				var match = acTexDamagedRe.exec(lines[i]);
 				var x = parseInt(match[1]);
 				var y = parseInt(match[2]);
-				addImageError(x, y, match[0]);
+				addImageError(currentFrame, x, y, match[0]);
 			} else if (dQuantRe.test(lines[i])) {
 				var match = dQuantRe.exec(lines[i]);
 				var x = parseInt(match[1]);
 				var y = parseInt(match[2]);
-				addImageError(x, y, match[0]);
+				addImageError(currentFrame, x, y, match[0]);
 			} else if (stuffingRe.test(lines[i])) {
 				var match = stuffingRe.exec(lines[i]);
 				var x = parseInt(match[1]);
 				var y = parseInt(match[2]);
-				addImageError(x, y, match[0]);
+				addImageError(currentFrame, x, y, match[0]);
 			}
 		}
 	}
 
 	$scope.getMBLogInfo = function (x, y) {
-		if (!$scope.data.currentImageInfo[y]) {
+		var frame = $scope.data.currentScrubPosition;
+
+		if (!currentImageInfo[frame]) {
 			return '';
 		}
 
-		if (!$scope.data.currentImageInfo[y][x]) {
+		if (!currentImageInfo[frame][y]) {
 			return '';
 		}
 
-		var block = $scope.data.currentImageInfo[y][x];
+		if (!currentImageInfo[frame][y][x]) {
+			return '';
+		}
 
-		return 'MB pos/size: ' + block.s + ' ' + pad(x) + ':' + pad(y) + ':' + block.pos + ' ' + block.len + ' dc: ' + block.dc1 + ' ' + block.dc2 + ' ' + block.dc3 + ' ' + block.dc4 + ' - ' + block.dc5 + ' ' + block.dc6;
+		var block = currentImageInfo[frame][y][x];
+
+		return 'MB pos/size: ' + block.s + ' ' + pad(frame, 3) + ':' + pad(x) + ':' + pad(y) + ':' + block.pos + ' ' + block.len + ' dc: ' + block.dc1 + ' ' + block.dc2 + ' ' + block.dc3 + ' ' + block.dc4 + ' - ' + block.dc5 + ' ' + block.dc6;
 	};
 
 	$scope.getMBErrorInfo = function (x, y) {
-		if (!$scope.data.currentImageError[y]) {
+		var frame = $scope.data.currentScrubPosition;
+		
+		if (!$scope.data.currentImageError[frame]) {
 			return '';
 		}
 
-		if (!$scope.data.currentImageError[y][x]) {
+		if (!$scope.data.currentImageError[frame][y]) {
 			return '';
 		}
 
-		return $scope.data.currentImageError[y][x];
+		if (!$scope.data.currentImageError[frame][y][x]) {
+			return '';
+		}
+
+		return $scope.data.currentImageError[frame][y][x];
 	};
 
+	$scope.getMBErrorCount = function () {
+		var frame = $scope.data.currentScrubPosition;
+
+		if (!errorCount[frame]) {
+			return '';
+		}
+
+		return errorCount[frame];
+	};
+	
 	$scope.$on("commandChanged", function (event) {
 		var lastCommandChanged = event.targetScope;
 		$scope.lastCommandChanged = lastCommandChanged;
