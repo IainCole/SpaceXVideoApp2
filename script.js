@@ -15,7 +15,7 @@ function opIsValid(op) {
 			return false;
 		}
 
-		if (isNaN(parseInt(op.pos)) || parseInt(op.pos) < -2) {
+		if (isNaN(parseInt(op.pos)) || parseInt(op.pos) < -4) {
 			return false;
 		}
 
@@ -87,7 +87,7 @@ function formatGlobalMmb(value, isolateFrame, currentScrubPosition) {
 		var mmb = formatMMB(value[i]);
 
 		if (isolateFrame && !mmb && i < currentScrubPosition) {
-			mmb = '0:0:-1';
+			mmb = '0:0:-3';
 		}
 		
 		if (mmb != null && mmb != '') {
@@ -148,8 +148,8 @@ function formatMMB(val) {
 	return mmb.join(",");
 }
 
-var mbOp = /^([0-9]+):([0-9]+):(-1|-2|[0-9]+)(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?$/;
-var mbOpDirOnly = /^([0-9]+):([0-9]+):(-1|-2|[0-9]+)::([0-9]+)$/;
+var mbOp = /^([0-9]+):([0-9]+):(-1|-2|-3|-4|[0-9]+)(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?(?::(-?[0-9]+)?)?$/;
+var mbOpDirOnly = /^([0-9]+):([0-9]+):(-1|-2|-3|-4|[0-9]+)::([0-9]+)$/;
 var reXor = /^x:([0-9]+):([0-9a-f]{1,2})$/i;
 
 function parseMMBPart(op) {
