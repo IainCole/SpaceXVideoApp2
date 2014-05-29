@@ -349,10 +349,10 @@ spacex.directive('scrubber', [function () {
 			});
 
 			$scope.$watch('data.currentFrameImages.length', function () {
-				scrubHandle.width(element.width() / ($scope.data.currentFrameImages.length + 1));
+				scrubHandle.width(element.width() / ($scope.data.currentFrameImages.length));
 			});
 
-			scrubHandle.width(element.width() / $scope.data.currentFrameImages.length + 1);
+			scrubHandle.width(element.width() / $scope.data.currentFrameImages.length);
 
 			$scope.$watch('data.currentScrubPosition', function (newVal, oldVal) {
 				if (newVal != oldVal) {
@@ -364,7 +364,7 @@ spacex.directive('scrubber', [function () {
 			function setPosition(pageX) {
 				var left = pageX - element.offset().left - (scrubHandle.width() / 2);
 
-				var frame = Math.round(left / element.width() * ($scope.data.currentFrameImages.length + 1));
+				var frame = Math.round(left / element.width() * ($scope.data.currentFrameImages.length));
 
 				if (frame < 0) {
 					frame = 0;
@@ -603,6 +603,7 @@ spacex.directive('imageLegend', ['$compile', function ($compile) {
 
 spacex.factory('imgService', ['$http', '$q', function ($http, $q) {
 	var basePath = 'http://dz0bwiwndcjbh.cloudfront.net';
+	basePath = 'http://localhost:59000';
 
 	return {
 		getVersion: function () {
