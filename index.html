@@ -408,7 +408,7 @@
 					</div>
 				</div>
 				<div id="frameNumber">{{data.currentScrubPosition + data.selectedFrame.startingFrame}}</div><div id="scrubber" scrubber><div id="scrubHandle"></div></div><a href="javascript://" ng-if="!data.isolateFrame" id="playPause" ng-class="{true: 'playing'}[playing]" ng-click="togglePlaying()"><span ng-if="playing">||</span><span ng-if="!playing">&gt;</span></a>
-			<!--	<p id="imgLink" ng-if="imagePath"><a target="_blank" href="{{imagePath}}">Save Image</a> (right click save as)</p>-->
+				<p id="imgLink" ng-if="imagePath"><a target="_blank" href="{{imagePath}}">Save Image</a> (right click save as)</p>
 				<textarea ng-model="data.frameLog" readonly="readonly" id="log"></textarea>
 			</div>
 		</div>

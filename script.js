@@ -1,7 +1,8 @@
 var spacex = angular.module('spacex', []);
 
-spacex.config(['$sceDelegateProvider', function($sceDelegateProvider) {
-	$sceDelegateProvider.resourceUrlWhitelist(['self', /http:\/\/dz0bwiwndcjbh\.cloudfront\.net/ ]);
+spacex.config(['$sceDelegateProvider', '$compileProvider', function ($sceDelegateProvider, $compileProvider) {
+	$sceDelegateProvider.resourceUrlWhitelist(['self', /http:\/\/dz0bwiwndcjbh\.cloudfront\.net/]);
+	$compileProvider.aHrefSanitizationWhitelist(/^\s*(http|data):/);
 }]);
 
 function opIsValid(op) {
@@ -87,7 +88,7 @@ function formatGlobalMmb(value, isolateFrame, currentScrubPosition) {
 		var mmb = formatMMB(value[i]);
 
 		if (isolateFrame && !mmb && i < currentScrubPosition) {
-			mmb = '0:0:-3';
+			mmb = '0:0:-1';
 		}
 		
 		if (mmb != null && mmb != '') {
@@ -603,7 +604,7 @@ spacex.directive('imageLegend', ['$compile', function ($compile) {
 
 spacex.factory('imgService', ['$http', '$q', function ($http, $q) {
 	var basePath = 'http://dz0bwiwndcjbh.cloudfront.net';
-	basePath = 'http://localhost:59000';
+	//basePath = 'http://localhost:59000';
 
 	return {
 		getVersion: function () {
