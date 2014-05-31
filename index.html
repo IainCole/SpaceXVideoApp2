@@ -1,417 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8" />
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
-	<script type="text/javascript" src="./script.js"></script>
-</head>
-<style type="text/css">
-	body 
-	{
-		font-family: Arial, Helvetica, sans-serif;
-		font-size:14px;
-	}
-	
-	
-	.cf:before,
-	.cf:after {
-		content: " "; /* 1 */
-		display: table; /* 2 */
-	}
-
-	.cf:after {
-		clear: both;
-	}
-	
-	p 
-	{
-		margin: 0;
-		padding-bottom: 5px;
-	}
-	
-	a, a:active, a:hover 
-	{
-		text-decoration:none;
-		color:#533787;
-	}
-	
-	a:hover
-	{
-		text-decoration:underline;
-	}
-	
-	#editor-container
-	{
-		position:relative;
-	}
-	
-	#imageMask
-	{
-		width: 704px;
-		height: 480px;
-		position: relative;
-		float: left;
-	}
-	#imgCursor, #selectedBlock
-	{
-		width: 14px;
-		height: 14px;
-		position: absolute;
-	}
-	#imgCursor
-	{
-		border: 1px solid green;
-	}
-	#selectedBlock
-	{
-		border: 1px solid red;
-	}
-	
-	#imageLegend 
-	{
-		position:absolute;
-		top:0;
-		left:0;
-	}
-	
-	#imageLegend .blockError
-	{
-		width:14px;
-		height:14px;
-		border:1px solid yellow;
-		position:absolute;
-	}
-	
-	#imageInfo 
-	{
-		height: 15px;
-		margin-bottom: 6px;
-		width: 702px;
-		position:relative;
-		float:left;
-	}
-	
-	
-	#imageInfo p
-	{
-		padding:0;
-	}
-		
-	#errorOverview
-	{
-		float:right;
-	}
-	
-	#errorOverview input
-	{
-		margin: 0 6px 0 4px;
-	}
-	
-	#spinner 
-	{
-		background: url("./ajax-loader.gif") no-repeat scroll center center rgba(0, 0, 0, 0);
-		position:absolute;
-		top:9px;
-		left:374px;
-		width:208px;
-		height:13px;
-		visibility: hidden;
-	}
-	#spinner.visible 
-	{
-		visibility:visible;
-	}
-	
-	select 
-	{
-		border: 1px solid #DEDEDE;
-		margin: 5px;
-		width: 170px;
-	}
-	
-	input 
-	{
-		border: 1px solid #DEDEDE;
-		margin: 5px;
-	}
-	
-	#frameMmb
-	{
-		border: 1px solid #DEDEDE;
-		height: 70px;
-		margin: 5px;
-		resize: none;
-		width: 993px;
-	}
-	
-	#globalMmb
-	{
-		border: 1px solid #DEDEDE;
-		height: 70px;
-		margin: 5px;
-		resize: none;
-		width: 993px;
-	}
-	
-	#selectedFrame 
-	{
-		width:1000px;
-	}
-	
-	#operations 
-	{
-		background-color: #FAFAFA;
-		border: 1px solid #DEDEDE;
-		float: right;
-		height: 647px;
-		padding: 10px;
-		width: 255px;
-		overflow-y:scroll;
-	}
-	
-	#globalOperations 
-	{
-		margin-bottom:30px;
-	}
-	
-	#bitShiftOp 
-	{
-		text-align:center;
-	}
-	
-	#log 
-	{
-		border: 1px solid #DEDEDE;
-		float: left;
-		height: 160px;
-		margin: 5px 0;
-		width: 701px;
-		resize:vertical;
-	}
-	
-	#imgLink
-	{
-		float: left;
-		margin: 5px 0 0;
-		padding: 0;
-	}
-	
-	.op
-	{
-		background-color: #EBEBEB;
-		border: 1px solid #DEDEDE;
-		padding: 5px;
-		margin-bottom:8px;
-		position:relative;
-	}
-	
-	.op-title 
-	{
-		cursor:pointer;
-		text-decoration:underline;
-		color:blue;
-	}
-	
-	.op-remove
-	{
-		position:absolute;
-		top:6px;
-		right:5px;
-		font-size:12px;
-		color:blue;
-		cursor:pointer;
-	}
-	
-	.xor-bitpos
-	{
-		padding-top:22px;
-	}
-	
-	.xor-bitpos .pos 
-	{
-		display:inline-block;
-		width:93px;
-	}
-	
-	.xor-bitpos .mask 
-	{
-		display:inline-block;
-		width:93px;
-	}
-	
-	.mb-op .pos
-	{
-		float:left;
-		width:212px;
-	}
-	
-	.mb-op .l1
-	{
-		float:left;
-		clear:left;
-		width:99px;
-	}
-	
-	.mb-op .l2
-	{
-		float:left;
-		width:99px;
-	}
-	
-	.mb-op .l3
-	{
-		float:left;
-		width:99px;
-	}
-	
-	.mb-op .l4
-	{
-		float:left;
-		width:99px;
-	}
-	
-	.mb-op .c1
-	{
-		float:left;
-		width:99px;
-	}
-	
-	.mb-op .c2
-	{
-		float:left;
-		width:99px;
-	}
-	
-	.mb-op .dir
-	{
-		float:left;
-		width:99px;
-	}
-	
-	#newVersion
-	{
-		border: 1px solid red;
-		font-size: 18px;
-		text-align: center;
-		padding: 7px;
-	}
-	
-	#scrubber
-	{
-		position:relative;
-		width: 643px;
-		height:10px;
-		border:1px solid #000;
-		float:left;
-		margin:10px 0;
-	}
-	
-	#scrubHandle
-	{
-		position:absolute;
-		width: 10px;
-		height:20px;
-		top:-5px;
-		background-color:#dedede;
-	}
-	
-	#scrubber.disabled
-	{
-		border-color:#dedede;
-	}
-	
-	#scrubber.disabled #scrubHandle
-	{
-		display:none;
-	}
-	
-	#playPause
-	{
-		display: block;
-		float: left;
-		margin: 6px;
-	}
-	
-	#frameNumber 
-	{
-		float: left;
-		margin: 7px;
-		width: 24px;
-	}
-	
-</style>
-<body ng-app="spacex">
-	<div ng-controller="AppController">
-		<div id="editor-container" ng-show="loaded">
-		<div ng-if="newVersionAvailable" id="newVersion">A new application version is available, please <a href="javascript://" ng-click="reloadApp()">reload the application</a> to get the latest changes.</div>
-			<select id="frame" ng-model="data.selectedFrame" ng-options="item as item.name for item in frames">
-				<option value="">-- iframe --</option>
-			</select>
-			<div id="spinner" ng-class="{true: 'visible'}[showSpinner]"></div>
-			<div id="selectedFrame" class="cf" ng-if="data.selectedFrame !== null">
-				<label for="frameMmb">MMB for Current Frame</label>
-				<textarea ng-model="data.mmb[data.currentScrubPosition]" id="frameMmb" parse-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
+	<head>
+		<meta charset="UTF-8" />
+		<title>SpaceX Landing Restoration P-Frame Editor</title>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
+		<script type="text/javascript" src="./script.js"></script>
+		<link rel="stylesheet" href="./styles.css"/>
+	</head>
+	<body ng-app="spacex">
+		<div ng-controller="AppController">
+			<div id="editor-container" ng-show="loaded">
+			<div ng-if="newVersionAvailable" id="newVersion">A new application version is available, please <a href="javascript://" ng-click="reloadApp()">reload the application</a> to get the latest changes.</div>
+				<select id="frame" ng-model="data.selectedFrame" ng-options="item as item.name for item in frames">
+					<option value="">-- iframe --</option>
+				</select>
+				<div id="spinner" ng-class="{true: 'visible'}[showSpinner]"></div>
+				<div id="selectedFrame" class="cf" ng-if="data.selectedFrame !== null">
+					<label for="frameMmb">MMB for Current Frame</label>
+					<textarea ng-model="data.mmb[data.currentScrubPosition]" id="frameMmb" parse-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
 				
-				<label for="frameMmb">MMB for Entire Segment</label>
-				<textarea ng-model="data.mmb" id="globalMmb" parse-global-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
-				<div class="cf">
-					<div id="imageInfo">
-						<p ng-if="data.selectedMacroBlock">MB {{data.selectedMacroBlock.x}}:{{data.selectedMacroBlock.y}} - {{getMBLogInfo(data.selectedMacroBlock.x, data.selectedMacroBlock.y)}}{{getMBErrorInfo(data.selectedMacroBlock.x, data.selectedMacroBlock.y)}}</p>
+					<label for="frameMmb">MMB for Entire Segment</label>
+					<textarea ng-model="data.mmb" id="globalMmb" parse-global-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
+					<div class="cf">
+						<div id="imageInfo">
+							<p ng-if="data.selectedMacroBlock">MB {{data.selectedMacroBlock.x}}:{{data.selectedMacroBlock.y}} - {{getMBLogInfo(data.selectedMacroBlock.x, data.selectedMacroBlock.y)}}{{getMBErrorInfo(data.selectedMacroBlock.x, data.selectedMacroBlock.y)}}</p>
+						</div>
+						<div id="errorOverview" ng-if="!playing">
+							<label for="isolateFrame">Isolate frame</label><input id="isolateFrame" type="checkbox" ng-model="data.isolateFrame" /><label for="showLegend">Show errors</label><input id="showLegend" type="checkbox" ng-model="data.showLegend" />Errors: {{getMBErrorCount()}}
+						</div>
 					</div>
-					<div id="errorOverview" ng-if="!playing">
-						<label for="isolateFrame">Isolate frame</label><input id="isolateFrame" type="checkbox" ng-model="data.isolateFrame" /><label for="showLegend">Show errors</label><input id="showLegend" type="checkbox" ng-model="data.showLegend" />Errors: {{getMBErrorCount()}}
+					<div id="imageMask" macroblock-selector="data">
+						<img src="{{imagePath}}" width="703" height="480" />
+						<div id="imageLegend" ng-if="data.showLegend" image-legend></div>
 					</div>
-				</div>
-				<div id="imageMask" macroblock-selector="data">
-					<img src="{{imagePath}}" width="703" height="480" />
-					<div id="imageLegend" ng-if="data.showLegend" image-legend></div>
-				</div>
-				<div id="operations">
-					<div ng-if="!playing">
-						<div id="globalOperations">
-							<p>Invert bits</p>
-							<div ng-repeat="op in data.mmb[data.currentScrubPosition].globalOperations" ng-controller="InvertBitsController">
-								<div class="op xor-bitpos cf" ng-if="op.__type == 'xor_bitpos'">
-									<div class="op-remove" ng-click="removeGlobalOp(op)">Remove</div>
-									<input class="pos" type="number" ng-model="op.pos" placeholder="pos" /> : <input class="mask" type="text" ng-model="op.mask" bitmask placeholder="mask" />
-									<input type="checkbox" ng-model="op.mask.b7" name="b7" />
-									<input type="checkbox" ng-model="op.mask.b6" name="b6" />
-									<input type="checkbox" ng-model="op.mask.b5" name="b5" />
-									<input type="checkbox" ng-model="op.mask.b4" name="b4" />
-									<input type="checkbox" ng-model="op.mask.b3" name="b3" />
-									<input type="checkbox" ng-model="op.mask.b2" name="b2" />
-									<input type="checkbox" ng-model="op.mask.b1" name="b1" />
-									<input type="checkbox" ng-model="op.mask.b0" name="b0" />
-									<div id="bitShiftOp">
-										<a href="javascript://" ng-click="rotateMaskLeft(op.mask)">Shift Left</a> | <a href="javascript://" ng-click="invertMask(op.mask)">Invert</a> | <a href="javascript://" ng-click="rotateMaskRight(op.mask)">Shift Right</a>
+					<div id="operations">
+						<div ng-if="!playing">
+							<div id="globalOperations">
+								<p>Invert bits</p>
+								<div ng-repeat="op in data.mmb[data.currentScrubPosition].globalOperations" ng-controller="InvertBitsController">
+									<div class="op xor-bitpos cf" ng-if="op.__type == 'xor_bitpos'">
+										<div class="op-remove" ng-click="removeGlobalOp(op)">Remove</div>
+										<input class="pos" type="number" ng-model="op.pos" placeholder="pos" /> : <input class="mask" type="text" ng-model="op.mask" bitmask placeholder="mask" />
+										<input type="checkbox" ng-model="op.mask.b7" name="b7" />
+										<input type="checkbox" ng-model="op.mask.b6" name="b6" />
+										<input type="checkbox" ng-model="op.mask.b5" name="b5" />
+										<input type="checkbox" ng-model="op.mask.b4" name="b4" />
+										<input type="checkbox" ng-model="op.mask.b3" name="b3" />
+										<input type="checkbox" ng-model="op.mask.b2" name="b2" />
+										<input type="checkbox" ng-model="op.mask.b1" name="b1" />
+										<input type="checkbox" ng-model="op.mask.b0" name="b0" />
+										<div id="bitShiftOp">
+											<a href="javascript://" ng-click="rotateMaskLeft(op.mask)">Shift Left</a> | <a href="javascript://" ng-click="invertMask(op.mask)">Invert</a> | <a href="javascript://" ng-click="rotateMaskRight(op.mask)">Shift Right</a>
+										</div>
 									</div>
 								</div>
+								<input id="addInvertBits" type="submit" value="Add" ng-click="addInvertBits()" />
 							</div>
-							<input id="addInvertBits" type="submit" value="Add" ng-click="addInvertBits()" />
-						</div>
-						<p>Macroblocks</p>
-						<div class="op mb-op" ng-repeat="op in getMacroblockOperations()" macroblock-operation>
-							<div class="op-title" ng-click="showMb(op)">MB {{op.x}}:{{op.y}}</div>
-							<div class="op-remove" ng-click="removeMb(op)">Remove</div>
-							<div class="cf" ng-show="op.__visible">
-								<input class="pos" type="number" ng-model="op.pos" placeholder="pos" />
-								<input class="l1" type="number" ng-model="op.l1" placeholder="L1" />
-								<input class="l2" type="number" ng-model="op.l2" placeholder="L2" />
-								<input class="l3" type="number" ng-model="op.l3" placeholder="L3" />
-								<input class="l4" type="number" ng-model="op.l4" placeholder="L4" />
-								<input class="c1" type="number" ng-model="op.c1" placeholder="C1" />
-								<input class="c2" type="number" ng-model="op.c2" placeholder="C2" />
-								<input class="dir" type="number" ng-model="op.dir" placeholder="DIR" />
+							<p>Macroblocks</p>
+							<div class="op mb-op" ng-repeat="op in getMacroblockOperations()" macroblock-operation>
+								<div class="op-title" ng-click="showMb(op)">MB {{op.x}}:{{op.y}}</div>
+								<div class="op-remove" ng-click="removeMb(op)">Remove</div>
+								<div class="cf" ng-show="op.__visible">
+									<input class="pos" type="number" ng-model="op.pos" placeholder="pos" />
+									<input class="l1" type="number" ng-model="op.l1" placeholder="L1" />
+									<input class="l2" type="number" ng-model="op.l2" placeholder="L2" />
+									<input class="l3" type="number" ng-model="op.l3" placeholder="L3" />
+									<input class="l4" type="number" ng-model="op.l4" placeholder="L4" />
+									<input class="c1" type="number" ng-model="op.c1" placeholder="C1" />
+									<input class="c2" type="number" ng-model="op.c2" placeholder="C2" />
+									<input class="dir" type="number" ng-model="op.dir" placeholder="DIR" />
+								</div>
 							</div>
 						</div>
 					</div>
+					<div id="frameNumber">{{data.currentScrubPosition + data.selectedFrame.startingFrame}}</div><div id="scrubber" scrubber><div id="scrubHandle"></div></div><a href="javascript://" ng-if="!data.isolateFrame" id="playPause" ng-class="{true: 'playing'}[playing]" ng-click="togglePlaying()"><span ng-if="playing">||</span><span ng-if="!playing">&gt;</span></a>
+					<p id="imgLink" ng-if="imagePath"><a target="_blank" href="{{imagePath}}">Save Image</a> (right click save as)</p>
+					<textarea ng-model="data.frameLog" readonly="readonly" id="log"></textarea>
 				</div>
-				<div id="frameNumber">{{data.currentScrubPosition + data.selectedFrame.startingFrame}}</div><div id="scrubber" scrubber><div id="scrubHandle"></div></div><a href="javascript://" ng-if="!data.isolateFrame" id="playPause" ng-class="{true: 'playing'}[playing]" ng-click="togglePlaying()"><span ng-if="playing">||</span><span ng-if="!playing">&gt;</span></a>
-				<p id="imgLink" ng-if="imagePath"><a target="_blank" href="{{imagePath}}">Save Image</a> (right click save as)</p>
-				<textarea ng-model="data.frameLog" readonly="readonly" id="log"></textarea>
 			</div>
 		</div>
-	</div>
-</body>
+	</body>
 </html>
