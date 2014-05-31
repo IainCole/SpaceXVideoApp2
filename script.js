@@ -767,6 +767,30 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 		});
 	}
 
+	var updateFramesMinutes = 10;
+
+	function updateFrames() {
+		imgService.getFrames().then(function (result) {
+			for (var i = 0; i < result.length; i++) {
+				for (var f = 0; f < $scope.frames.length; f++) {
+					if ($scope.frames[f].frame == result[i].frame && $scope.frames[f] !== $scope.data.selectedFrame) {
+						// Copy the latest MMBs across
+						$scope.frames[f].mmb = result[i].mmb;
+						for (var pn = 0; pn < result[i].pFrames.length; pn++) {
+							for (var p = 0; p < $scope.frames[f].pFrames.length; p++) {
+								if ($scope.frames[f].pFrames[p].id == result[i].pFrames[pn].id) {
+									$scope.frames[f].pFrames[p].mmb = result[i].pFrames[pn].mmb;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			$timeout(updateFrames, updateFramesMinutes * 60000);
+		});
+	}
+
 	$q.all([
 			imgService.getVersion(),
 			imgService.getAppVersion(),
@@ -776,7 +800,9 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 		$scope.newVersionAvailable = false;
 		$scope.appVersion = result[1];
 		$scope.frames = result[2];
-		
+
+		$timeout(updateFrames, updateFramesMinutes * 60000);
+
 		$scope.loaded = true;
 
 		$timeout(checkVersion, versionCheckSeconds * 1000);
