@@ -5,6 +5,96 @@ spacex.config(['$sceDelegateProvider', '$compileProvider', function ($sceDelegat
 	$compileProvider.aHrefSanitizationWhitelist(/^\s*(http|data):/);
 }]);
 
+
+function wid_to_gid(wid) {
+    return parseInt(String(wid),36)^31578
+}
+function gid_to_wid(gid) {
+    return parseInt((gid^31578)).toString(36);
+}
+var sheet_table = {
+    // List of sheet keys that contain MMBs for specific parts
+    1:"1sVwOkxW6tBq7CcqmXBOkb9frlgdocUyRplvk05v6seg",
+    2:"1w5LCJxUDSF1yILkDppSXMkiL1Li2K89dbRRIGv4A_6I",
+    3:"1O_p3hofqWaMTDJYRYKM0if4Xv64av4JBIkEmReLXytA",
+    4:"1mE469DE0zUGy9iuySWWQGgFDt2HC5ke4hUy_posFp4o",
+    5:"1b4kaKBYUx8iI7-__15H5CEr4_73tXaXlIwPa2gPj8Fo",
+    6:"1YJXUI6-hOJsPsuZr1t1kJ-iSNcI26sFl_gEMShvi1Hk",
+    7:"1dIFfIZWXZRea72AI6R9thDxv5r5cPWbXgkvquCcXSIQ",
+    8:"18vhTHN6WUB5dKhJEGGi_MASHbmAsaoIohAFvpFZT7vk",
+    9:"11zI2scQWLdat_qRL3zlm-h4QznfOiF_18hByEt9xiyo",
+    10:"1JkT-RmkcrClqAG_6cWnG5VrQUYSmggdA19jc2CRDlcU",
+    11:"1XzqmeR0Ylxmdk_nKBG4jmbfXnQSNaJ5v0b4d9qXZgms",
+    12:"1Ez8lX_-KfY6dbMKVokPnkPjdOp3K3PARNfYSsmHjA-g",
+    13:"15lyFN4FYJ3uyLibJL2TKouZBcnpIaYSsw293HljH6So",
+    14:"1b1hQ1as-MJ6C3rBfuAIpKnemEjcVtBo7d_HPRFyWBt8",
+    15:"19-dfEOiOy2L1RpFtDT8v5d7DPjt7g9xUL5KeUc3zfOU"
+};
+
+function getFrameDetails(frame){
+    frame = parseInt(frame,10);
+    var part = Math.ceil((frame)/20);
+    var index = (frame - ((part-1)*20)) - 1;
+    return {
+        'number':frame,
+        'index':index,
+        'part':part 
+    }
+}
+
+function parseSheetData(frame,data){
+    
+    var f = getFrameDetails(frame);
+    
+    var result = {
+        'status':0,
+        'message':'unknown'
+    };
+    var mmbkey = 'gsx$latestmmbcode';
+    if(data['feed'] && data['feed']['entry'] && data['feed']['entry'][0][mmbkey]){
+
+        var framemmb = '', mmbs = [];
+
+        for(var i in data['feed']['entry']){
+            var entry = data['feed']['entry'][i];
+            //console.log(entry);
+            var mmb = entry[mmbkey]['$t'].trim();
+            if(mmb.length && i < 20){
+                if(i == f.index){
+                    framemmb = mmb;
+                }
+                
+            }
+            mmbs.push(mmb);
+        }
+
+        if(!mmbs.length){
+            result['message'] = 'No MMBs currently entered for part '+f.part;
+        } else {
+            result['status'] = 1;
+            result['message'] = 'success';
+            result['framemmb'] = framemmb;
+            result['globalmmb'] = mmbs;
+        }
+
+    } else {
+        result['message'] = 'Unable to parse MMBs from sheet '+f.part;
+    }
+    
+    return result;
+    
+}
+
+function getSheetUrl(frame, editUrl){
+    var f = getFrameDetails(frame);
+    if(editUrl){
+        return 'https://docs.google.com/spreadsheets/d/'+sheet_table[f.part]+'/edit#gid=0';
+    } else {
+        return 'https://spreadsheets.google.com/feeds/list/'+sheet_table[f.part]+'/'+gid_to_wid(0)+'/public/values?alt=json-in-script&callback=JSON_CALLBACK';
+    }
+    
+}
+
 function opIsValid(op) {
 	if (op.__type == 'macro_block_op') {
 
@@ -601,7 +691,6 @@ spacex.directive('imageLegend', ['$compile', function ($compile) {
 	};
 } ]);
 
-
 spacex.factory('imgService', ['$http', '$q', function ($http, $q) {
 	var basePath = 'http://dz0bwiwndcjbh.cloudfront.net';
 	//basePath = 'http://localhost:59000';
@@ -746,8 +835,26 @@ spacex.factory("preloader", function ($q, $rootScope) {
 	return (Preloader);
 });
 
+spacex.factory('mmbLoader', ['$http', '$q', function ($http, $q) {
 
-function AppController($scope, $q, imgService, preloader, $timeout) {
+    return {
+        
+        sheetFromFrame: function (frame) {
+                var url = getSheetUrl(frame);
+                //console.log(url);
+                return $http({
+                        method: 'JSONP',
+                        url: url
+                }).then(function (result) {
+                        //console.log(result);
+                        return parseSheetData(frame,result.data);
+                });
+        }
+    };
+} ]);
+
+
+function AppController($scope, $q, imgService, preloader, mmbLoader, $timeout) {
 	$scope.loaded = false;
 	$scope.lastCommandChanged = null;
 
@@ -847,6 +954,56 @@ function AppController($scope, $q, imgService, preloader, $timeout) {
 			}
 		}
 	}, true);
+        
+        $scope.loadFrameMmb = function(){
+            
+            if(formatMMB($scope.data.mmb[$scope.data.currentScrubPosition]).length
+                && !confirm("This will overwrite your current MMB.  Are you sure?")){
+                return;
+            }
+            
+            var frame = $scope.data.currentScrubPosition + $scope.data.selectedFrame.startingFrame;
+            mmbLoader.sheetFromFrame(frame).then(function(result){
+                //console.log(result);
+                //console.log($scope.data.mmb[$scope.data.currentScrubPosition]);
+                if(result.status){
+                    if(!result.framemmb.length){
+                        alert('Frame '+frame+' currently has no MMB.  You should make one!');
+                    } else{
+                        $scope.data.mmb[$scope.data.currentScrubPosition] = parseMMB(result.framemmb);
+                    }
+                } else {
+                    alert(result.message);
+                }
+            });
+            
+        }
+        
+        $scope.loadGlobalMmb = function(){
+            
+            if(formatGlobalMmb($scope.data.mmb).length
+                && !confirm("This will overwrite your current segement MMBs.  Are you sure?")){
+                return;
+            }
+            
+            var frame = $scope.data.currentScrubPosition + $scope.data.selectedFrame.startingFrame;
+            mmbLoader.sheetFromFrame(frame).then(function(result){
+                //console.log(result);
+                if(result.status){
+                    for(var i in result.globalmmb){
+                        $scope.data.mmb[i] = parseMMB(result.globalmmb[i]);
+                    }
+                } else {
+                    alert(result.message);
+                }
+            });
+        }
+        
+        $scope.openSegmentSheet = function(){
+            
+            window.open(getSheetUrl($scope.data.currentScrubPosition + $scope.data.selectedFrame.startingFrame, true),'_blank');
+            
+        }
 
 	$scope.rotateMaskLeft = function (mask) {
 		var shifted = mask.b7;
