@@ -18,9 +18,12 @@
 				<div id="spinner" ng-class="{true: 'visible'}[showSpinner]"></div>
 				<div id="selectedFrame" class="cf" ng-if="data.selectedFrame !== null">
 					<label for="frameMmb">MMB for Current Frame</label>
+                                        <button ng-click="loadFrameMmb()">Load Frame MMB From Sheet</button>
+                                        <a href="#" ng-click="openSegmentSheet()">Show Segment Sheet</a>
 					<textarea ng-model="data.mmb[data.currentScrubPosition]" id="frameMmb" parse-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
 				
 					<label for="frameMmb">MMB for Entire Segment</label>
+                                        <button ng-click="loadGlobalMmb()">Load All Segment MMBs From Sheet</button>
 					<textarea ng-model="data.mmb" id="globalMmb" parse-global-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
 					<div class="cf">
 						<div id="imageInfo">
