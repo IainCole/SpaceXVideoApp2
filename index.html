@@ -20,6 +20,7 @@
 					<label for="frameMmb">MMB for Current Frame</label>
                                         <button ng-click="loadFrameMmb()">Load Frame MMB From Sheet</button>
                                         <a href="#" ng-click="openSegmentSheet()">Show Segment Sheet</a>
+                                        | <a href="https://docs.google.com/forms/d/1p8-M-Oy5FhBj6Ca9Nn6LNIgpyHYaEzZSGpP0GtyQLX0/viewform?entry.393075237={{data.currentScrubPosition + data.selectedFrame.startingFrame}}&entry.409163714=&entry.853023400&entry.1601393417">Suggest MMB improvement</a>
 					<textarea ng-model="data.mmb[data.currentScrubPosition]" id="frameMmb" parse-mmb placeholder="paste an -mmb here or click on the image to add macroblock operations, invert bits operations can be added in the right bar"></textarea>
 				
 					<label for="frameMmb">MMB for Entire Segment</label>
