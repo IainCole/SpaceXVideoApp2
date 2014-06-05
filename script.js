@@ -2,7 +2,7 @@ var spacex = angular.module('spacex', []);
 
 spacex.config(['$sceDelegateProvider', '$compileProvider', function ($sceDelegateProvider, $compileProvider) {
 	$sceDelegateProvider.resourceUrlWhitelist(['self', /http:\/\/dz0bwiwndcjbh\.cloudfront\.net/]);
-	$compileProvider.aHrefSanitizationWhitelist(/^\s*(http|data):/);
+	$compileProvider.aHrefSanitizationWhitelist(/^\s*(http|https|data):/);
 }]);
 
 
