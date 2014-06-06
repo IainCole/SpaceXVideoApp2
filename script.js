@@ -235,7 +235,6 @@ function formatMMB(val) {
 			}
 		});
 	}
-
 	return mmb.join(",");
 }
 
@@ -954,6 +953,10 @@ function AppController($scope, $q, imgService, preloader, mmbLoader, $timeout) {
 			}
 		}
 	}, true);
+	
+	$scope.asMMB = function(val){
+	        return formatMMB(val);
+	}
         
         $scope.loadFrameMmb = function(){
             
